@@ -4,7 +4,9 @@ import BlogPost from '../../layouts/BlogPost.astro';
 
 export async function getStaticPaths() {
 	const posts = await getCollection('blog', ({ data }) => import.meta.env.DEV || !data.draft);
-	return posts.map((post) => ({
+	// Posts with their own page in src/pages/blog/ (e.g. the interactive inference-engineering post)
+	const customPages = ['inference-engineering'];
+	return posts.filter((post) => !customPages.includes(post.id)).map((post) => ({
 		params: { slug: post.id },
 		props: post,
 	}));

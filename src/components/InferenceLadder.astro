@@ -1,0 +1,1165 @@
+---
+// Inference Ladder: the interactive content of the "Inference Engineering" post.
+// Built from contentfrom-tw-blogs/InferenceEngineering/demo.html. All demo styles are scoped under .il so the
+// site's global styles and the demo's styles don't collide; the demo's logic runs as-is.
+---
+
+<div class="il">
+<div class="wrap">
+
+  <header class="hero">
+    <p class="kicker">Inference engineering, live</p>
+    <h1 class="title">Inference Ladder</h1>
+    <p>Five levels for squeezing more out of a language model at serving time — from the API call you already send, up to designing a model that serves cheaply on purpose. Every level has a running simulation, built on representative mock numbers, that you can push around like a real one.</p>
+  </header>
+
+  <nav aria-label="Levels">
+    <ul class="rungs" id="rungs"></ul>
+  </nav>
+
+  <!-- ================= LEVEL 1 ================= -->
+  <section class="panel" id="l1" data-title="Basics">
+    <div class="panel-head">
+      <p class="eyebrow">Level 01 · Basics</p>
+      <h2>Use the API you already have</h2>
+      <p class="audience">For every engineer building on Claude, GPT, or Gemini.</p>
+    </div>
+    <p class="body-copy">You don't own the GPUs, but the request you send still decides most of the bill. The biggest lever is <strong>prompt caching</strong>: a provider can reuse a prefix of a prompt if it's identical to one it just processed. Put whatever never changes — system prompt, tool schemas, reference documents — first, and the part that changes every call, the user's message, last. Anthropic prices a cache hit at roughly <strong>90% less</strong> than a fresh input token. Edit a single character inside that cached prefix and the whole thing misses on the very next call — ordering isn't a style choice, it's the mechanism.</p>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <p class="card-title">Prompt cache simulator</p>
+          <p class="card-sub">One request, 2,600 stable tokens (system + tools + docs) and 300 fresh tokens (the user's message)</p>
+        </div>
+        <div class="toggle-row">
+          <button class="switch" id="cacheToggle" role="switch" aria-checked="true" aria-label="Stable content first"></button>
+          <span class="toggle-label">Stable content first<br><span class="mono" id="cacheToggleState">ON — cache-friendly order</span></span>
+        </div>
+      </div>
+
+      <div class="prompt-strip" id="promptStrip"></div>
+
+      <div class="stat-grid">
+        <div class="stat-tile accent"><span class="v tnum" id="statCachedTok">2,600</span><span class="l">cached tokens</span></div>
+        <div class="stat-tile"><span class="v tnum" id="statFreshTok">300</span><span class="l">fresh tokens</span></div>
+        <div class="stat-tile accent2"><span class="v tnum" id="statSavings">81%</span><span class="l">cost saved vs. no caching</span></div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="bar-row">
+          <div class="bar-top"><span class="name">Cost per 1,000 calls — this order</span><span class="val tnum" id="barCostA">$1.68</span></div>
+          <div class="bar-track"><div class="bar-fill" id="barFillA" style="background:var(--accent); width:19%;"></div></div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-top"><span class="name">Cost per 1,000 calls — no caching</span><span class="val tnum">$8.70</span></div>
+          <div class="bar-track"><div class="bar-fill" style="background:var(--border-strong); width:100%;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="label">Try this</span>
+      <p>Flip the switch. On, the blue blocks are what an identical second call gets for ~10% price. Off, the user's message sits before the stable content, so nothing downstream can match a previous prefix — the whole 2,900 tokens are billed fresh, every single call.</p>
+    </div>
+
+    <div class="fact-grid">
+      <div class="fact">
+        <div class="ft-label">Lever 2 — stream the response</div>
+        <div class="ft-row"><span class="big">~260ms</span><span class="small">to first token, streamed</span></div>
+        <div class="ft-row"><span class="big" style="color:var(--muted)">~4.1s</span><span class="small">to see anything, unstreamed</span></div>
+        <p class="ft-note">Same total time — the user just isn't staring at a blank screen for it.</p>
+      </div>
+      <div class="fact">
+        <div class="ft-label">Lever 3 — route to the smallest model that passes</div>
+        <div class="ft-row"><span class="big">$0.0002</span><span class="small">Haiku-class router step</span></div>
+        <div class="ft-row"><span class="big" style="color:var(--muted)">$0.0083</span><span class="small">same step on a flagship model</span></div>
+        <p class="ft-note">A yes/no classification rarely needs the biggest model on the menu.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= LEVEL 2 ================= -->
+  <section class="panel" id="l2" data-title="Practitioner" hidden>
+    <div class="panel-head">
+      <p class="eyebrow">Level 02 · Practitioner</p>
+      <h2>Serve a model yourself</h2>
+      <p class="audience">For engineers who want to see what happens under the hood.</p>
+    </div>
+    <p class="body-copy">Rent a single GPU, put an 8B open model on it behind <strong>vLLM</strong>, and you get an endpoint shaped like the OpenAI API — your app code barely changes. What's new is watching <strong>batching</strong> happen: one cost analysis found continuous batching lifting GPU utilization from under 20% to over 70% on the same card, cutting the cost of each token three to four times. You also learn where memory goes — model weights take a fixed slice, and everything left over becomes <strong>KV cache</strong>, the running notes for every in-flight conversation. That pool is what decides how many people you can serve at once.</p>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <p class="card-title">Load test simulator</p>
+          <p class="card-sub">Same three sample points a guidellm run would take</p>
+        </div>
+      </div>
+
+      <div class="slider-wrap">
+        <input type="range" id="concSlider" min="0" max="2" step="1" value="1" list="concTicks" aria-label="Concurrent users">
+        <div class="slider-ticks">
+          <span data-val="1">1 user</span>
+          <span data-val="8">8 users</span>
+          <span data-val="32">32 users</span>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-tile accent"><span class="v tnum" id="s2Util">55%</span><span class="l">GPU utilization</span></div>
+        <div class="stat-tile accent2"><span class="v tnum" id="s2Thr">230</span><span class="l">tokens/sec, aggregate</span></div>
+        <div class="stat-tile"><span class="v tnum" id="s2Ttft">240ms</span><span class="l">time to first token</span></div>
+        <div class="stat-tile"><span class="v tnum" id="s2Kv">42%</span><span class="l">KV cache in use</span></div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-box"><p class="chart-title">Throughput vs. concurrency</p><canvas id="chartThroughput"></canvas></div>
+        <div class="chart-box"><p class="chart-title">Time to first token vs. concurrency</p><canvas id="chartTtft"></canvas></div>
+      </div>
+
+      <div style="margin-top:18px;">
+        <div class="bar-row">
+          <div class="bar-top"><span class="name">GPU memory — weights vs. KV cache</span><span class="val tnum" id="s2MemLabel">58% free</span></div>
+          <div class="bar-track" style="display:flex;">
+            <div class="bar-fill" style="background:var(--muted); width:35%; border-radius:4px 0 0 4px;"></div>
+            <div class="bar-fill" id="s2MemKv" style="background:var(--accent-2); width:23%; border-radius:0;"></div>
+          </div>
+        </div>
+        <div class="legend-inline">
+          <span><i style="background:var(--muted)"></i>Model weights — fixed</span>
+          <span><i style="background:var(--accent-2)"></i>KV cache — grows with concurrency</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="label">Try this</span>
+      <p>Drag the slider across 1, 8, then 32 concurrent users. Throughput climbs and time-to-first-token gets worse at the same time — that tradeoff is the whole game in one chart.</p>
+    </div>
+  </section>
+
+  <!-- ================= LEVEL 3 ================= -->
+  <section class="panel" id="l3" data-title="Advanced" hidden>
+    <div class="panel-head">
+      <p class="eyebrow">Level 03 · Advanced</p>
+      <h2>Tune for your traffic</h2>
+      <p class="audience">For platform engineers and architects making real choices.</p>
+    </div>
+    <p class="body-copy">Past a certain scale, you stop using one engine one way and start picking tools for the shape of your traffic. <strong>Quantization</strong> stores weights in smaller numbers — FP8 instead of FP16 — and on an H100 that roughly doubles throughput at the same hourly price, with little quality loss for most tasks (check your eval anyway). <strong>Prefix caching</strong> reuses notes across turns of the same conversation, and engines differ sharply in how well they hold onto it under load: in one multi-turn benchmark, SGLang held around 30 tokens/sec while vLLM slid from 22 down to 16 as cache pressure built. For agent workloads with long, repeated context that gap is real; for a one-shot batch job on a fixed template, vLLM is fine.</p>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <p class="card-title">Precision</p>
+          <p class="card-sub">Same model, same H100, different number format</p>
+        </div>
+        <div class="segmented" id="precisionSeg">
+          <button aria-pressed="true" data-v="fp16">FP16</button>
+          <button aria-pressed="false" data-v="fp8">FP8</button>
+        </div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span class="name">Throughput</span><span class="val tnum" id="precThrVal">118 tok/s</span></div>
+        <div class="bar-track"><div class="bar-fill" id="precThrBar" style="background:var(--accent); width:51%;"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span class="name">Cost per 1M output tokens</span><span class="val tnum" id="precCostVal">$1.90</span></div>
+        <div class="bar-track"><div class="bar-fill" id="precCostBar" style="background:var(--accent-2); width:100%;"></div></div>
+      </div>
+      <p class="card-sub" id="precNote" style="margin-top:10px;">Baseline — FP16 weights.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <p class="card-title">Engine under load</p>
+          <p class="card-sub">Tokens/sec across a 10-turn agent conversation, same shared context</p>
+        </div>
+        <div class="toggle-row">
+          <button class="switch" id="prefixToggle" role="switch" aria-checked="true" aria-label="Prefix caching"></button>
+          <span class="toggle-label">Prefix caching<br><span class="mono" id="prefixToggleState">ON</span></span>
+        </div>
+      </div>
+      <div class="chart-box" style="height:220px;"><canvas id="chartEngine"></canvas></div>
+      <div class="legend-inline">
+        <span><i style="background:var(--accent)"></i>vLLM</span>
+        <span><i style="background:var(--series-3)"></i>SGLang</span>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="label">Try this</span>
+      <p>Run the same multi-turn trace through both engines with prefix caching on, then switch precision to FP8. Keep your eval running beside it and write down which change bought the most — and what it cost in quality.</p>
+    </div>
+  </section>
+
+  <!-- ================= LEVEL 4 ================= -->
+  <section class="panel" id="l4" data-title="Expert" hidden>
+    <div class="panel-head">
+      <p class="eyebrow">Level 04 · Expert</p>
+      <h2>Rebuild how serving works</h2>
+      <p class="audience">For inference specialists running serious volume.</p>
+    </div>
+    <p class="body-copy">At real volume, you stop tuning an engine and start changing its architecture. <strong>Speculative decoding</strong> lets a small, fast draft model guess the next few tokens while the big model verifies them all in one pass — right guesses mean several tokens for the price of one. <strong>Split serving</strong> puts prefill and decode on separate GPU pools sized for their own job, so one long prompt stops stealing latency from everyone else's answer — the hard part is moving KV cache between pools fast enough. <strong>Cache-aware routing</strong> sends each request to whichever machine already holds its notes, which for a fleet of agents sharing context can save a large share of prefill work outright.</p>
+
+    <div class="segmented" id="l4Seg" style="margin-bottom:16px;">
+      <button aria-pressed="true" data-v="spec">Speculative decoding</button>
+      <button aria-pressed="false" data-v="split">Split serving</button>
+      <button aria-pressed="false" data-v="route">Cache-aware routing</button>
+    </div>
+
+    <div class="card" id="l4-spec">
+      <div class="card-head">
+        <div><p class="card-title">Draft-and-verify speedup</p><p class="card-sub">Effective throughput, same big model, same prompt</p></div>
+        <div class="segmented" id="specSeg">
+          <button aria-pressed="true" data-v="base">Baseline</button>
+          <button aria-pressed="false" data-v="spec">Speculative</button>
+          <button aria-pressed="false" data-v="eagle">EAGLE-3</button>
+        </div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span class="name">Tokens/sec</span><span class="val tnum" id="specThrVal">58 tok/s · 1.0×</span></div>
+        <div class="bar-track"><div class="bar-fill" id="specThrBar" style="background:var(--accent); width:44%;"></div></div>
+      </div>
+      <p class="card-sub" style="margin:14px 0 6px;">Gain depends on how predictable the output is:</p>
+      <div class="bar-row">
+        <div class="bar-top"><span class="name">Code edits / templates</span><span class="val tnum" id="specCodeVal">1.0×</span></div>
+        <div class="bar-track"><div class="bar-fill" id="specCodeBar" style="background:var(--series-3); width:30%;"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span class="name">Open-ended creative writing</span><span class="val tnum" id="specCreatVal">1.0×</span></div>
+        <div class="bar-track"><div class="bar-fill" id="specCreatBar" style="background:var(--series-4); width:22%;"></div></div>
+      </div>
+    </div>
+
+    <div class="card" id="l4-split" hidden>
+      <div class="card-head">
+        <div><p class="card-title">Decode latency when a long prompt lands</p><p class="card-sub">One shared pool vs. two pools sized for their own job</p></div>
+      </div>
+      <div class="pool-diagram">
+        <div class="pool">
+          <h4>Shared pool</h4>
+          <div class="pool-boxes"><div class="gpu-box"><span class="tag">prefill + decode</span>one GPU pool</div></div>
+          <div class="spark-label"><span>decode latency</span><b id="sharedPeak">peaks at 910ms</b></div>
+          <svg viewBox="0 0 220 60" width="100%" height="60" preserveAspectRatio="none" aria-label="Shared pool decode latency spikes when a long prompt arrives">
+            <polyline points="0,44 30,43 60,42 90,40 100,8 120,14 140,28 160,38 190,42 220,43" fill="none" stroke="var(--critical)" stroke-width="2.5" />
+            <line x1="100" y1="0" x2="100" y2="60" stroke="var(--border-strong)" stroke-dasharray="3,3"/>
+          </svg>
+          <p class="card-sub">Dashed line: a long prompt arrives. It steals the pool.</p>
+        </div>
+        <div class="pool">
+          <h4>Split pools</h4>
+          <div class="pool-boxes">
+            <div class="gpu-box prefill"><span class="tag">prefill</span>pool A</div>
+            <div class="pool-arrow">→</div>
+            <div class="gpu-box decode"><span class="tag">decode</span>pool B</div>
+          </div>
+          <div class="spark-label"><span>decode latency</span><b id="splitPeak">stays ~200ms</b></div>
+          <svg viewBox="0 0 220 60" width="100%" height="60" preserveAspectRatio="none" aria-label="Split pools keep decode latency flat when a long prompt arrives">
+            <polyline points="0,44 30,43 60,44 90,42 100,40 120,42 140,43 160,42 190,43 220,44" fill="none" stroke="var(--good)" stroke-width="2.5" />
+            <line x1="100" y1="0" x2="100" y2="60" stroke="var(--border-strong)" stroke-dasharray="3,3"/>
+          </svg>
+          <p class="card-sub">Same long prompt — pool B never feels it.</p>
+        </div>
+      </div>
+      <p class="card-sub" style="margin-top:12px;">Tools like llm-d and NVIDIA Dynamo package this on Kubernetes. The hard part is moving KV cache between pools fast enough.</p>
+    </div>
+
+    <div class="card" id="l4-route" hidden>
+      <div class="card-head">
+        <div><p class="card-title">Prefill work across six requests, same agent fleet</p><p class="card-sub">Random machine vs. routed to the machine already holding the context</p></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-top"><span class="name">Random routing — total prefill</span><span class="val tnum">10,800 tok</span></div>
+        <div class="bar-track"><div class="bar-fill" style="background:var(--accent-2); width:100%;"></div></div>
+      </div>
+      <div class="cache-strip">
+        <div class="cell cold"></div><div class="cell cold"></div><div class="cell cold"></div>
+        <div class="cell cold"></div><div class="cell cold"></div><div class="cell cold"></div>
+      </div>
+      <div class="bar-row" style="margin-top:16px;">
+        <div class="bar-top"><span class="name">Cache-aware routing — total prefill</span><span class="val tnum">2,950 tok</span></div>
+        <div class="bar-track"><div class="bar-fill" style="background:var(--accent); width:27%;"></div></div>
+      </div>
+      <div class="cache-strip">
+        <div class="cell cold"></div><div class="cell warm"></div><div class="cell warm"></div>
+        <div class="cell warm"></div><div class="cell warm"></div><div class="cell warm"></div>
+      </div>
+      <p class="card-sub" style="margin-top:10px;">Solid = cold, full prefill. Dashed = the machine already had these notes cached — 73% less prefill work for the same six requests.</p>
+    </div>
+
+    <div class="callout">
+      <span class="label">Try this</span>
+      <p>Measure how much of your GPU time goes to prefill vs. decode. If prefill spikes are hurting decode speed for other users, that's your signal to try split serving. If they aren't, don't bother yet.</p>
+    </div>
+  </section>
+
+  <!-- ================= LEVEL 5 ================= -->
+  <section class="panel" id="l5" data-title="Frontier" hidden>
+    <div class="panel-head">
+      <p class="eyebrow">Level 05 · Frontier</p>
+      <h2>Design the model for serving</h2>
+      <p class="audience">For teams that train or fine-tune their own models.</p>
+    </div>
+    <p class="body-copy">At the top of the ladder, inference stops being something you optimize around and starts shaping the model itself. Character.AI picked attention designs that need fewer notes per token, shared those notes across layers, and trained in int8 so there was never a gap between how the model trained and how it serves. Other teams write their own GPU kernels, plan whole fleets with queueing theory, or mix hardware — compute-heavy cards for prefill, memory-heavy cards for decode, as described in the DeepSeek-V3 report's section on split serving.</p>
+
+    <div class="card">
+      <p class="card-title" style="margin-bottom:14px;">Standard training vs. serving-aware design</p>
+      <div class="table-scroll">
+        <table class="compare">
+          <thead><tr><th>Decision</th><th>Standard approach</th><th>Serving-aware approach</th></tr></thead>
+          <tbody>
+            <tr><td>Attention design</td><td class="standard">Full attention per layer</td><td class="frontier">Fewer notes needed per token, shared across layers</td></tr>
+            <tr><td>Training precision</td><td class="standard">Train in FP32/BF16, quantize later</td><td class="frontier">Train in int8 — no train/serve gap to correct for</td></tr>
+            <tr><td>GPU kernels</td><td class="standard">Vendor-default kernels</td><td class="frontier">Hand-written kernels tuned to the model's own shape</td></tr>
+            <tr><td>Fleet planning</td><td class="standard">Provision by rule of thumb</td><td class="frontier">Sized with queueing-theory models of real traffic</td></tr>
+            <tr><td>Hardware mix</td><td class="standard">One GPU type for everything</td><td class="frontier">Compute-heavy cards for prefill, memory-heavy for decode</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="callout">
+      <span class="label">Try this</span>
+      <p>Read the Character.AI inference write-up and the DeepSeek-V3 report's section on split serving. Then take one modeling decision in your own stack and answer the question below.</p>
+    </div>
+
+    <div class="card">
+      <p class="card-title" style="margin-bottom:8px;">What does this decision cost at serving time, a year from now, at ten times the traffic?</p>
+      <textarea class="reflect" id="reflectBox" placeholder="e.g. we default every agent step to the flagship model — at 10x traffic that's 10x the flagship bill, when half those steps are routing decisions a small model would pass just as well…"></textarea>
+      <p class="save-note" id="saveNote">Kept only in this browser — never sent anywhere.</p>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script is:inline>
+(function(){
+  "use strict";
+
+  var root = document.querySelector(".il"); // colour tokens live on the demo wrapper, not :root
+  function cssVar(name){ return getComputedStyle(root).getPropertyValue(name).trim(); }
+
+  /* ---------------- Rung nav ---------------- */
+  var levels = [
+    {id:"l1", num:"01", name:"Basics"},
+    {id:"l2", num:"02", name:"Practitioner"},
+    {id:"l3", num:"03", name:"Advanced"},
+    {id:"l4", num:"04", name:"Expert"},
+    {id:"l5", num:"05", name:"Frontier"}
+  ];
+  var rungsEl = document.getElementById("rungs");
+  var initialized = {};
+
+  levels.forEach(function(lv){
+    var li = document.createElement("li");
+    li.className = "rung";
+    li.id = "rung-" + lv.id;
+    var btn = document.createElement("button");
+    btn.innerHTML = '<span class="num mono">LVL ' + lv.num + '</span><span class="name">' + lv.name + '</span>';
+    btn.addEventListener("click", function(){ activate(lv.id, true); });
+    li.appendChild(btn);
+    rungsEl.appendChild(li);
+  });
+
+  function activate(id, updateUrl){
+    levels.forEach(function(lv){
+      var panel = document.getElementById(lv.id);
+      var rung = document.getElementById("rung-" + lv.id);
+      var on = lv.id === id;
+      panel.hidden = !on;
+      rung.setAttribute("data-active", on ? "true" : "false");
+    });
+    if (!initialized[id]) {
+      initialized[id] = true;
+      if (id === "l2") initL2Charts();
+      if (id === "l3") initL3Chart();
+    }
+    // Only rewrite the URL on a user's pick; doing it during load makes the browser jump to the panel
+    if (updateUrl) { try { history.replaceState(null, "", "#" + id); } catch(e) {} }
+  }
+
+  var startId = "l1";
+  var hash = (location.hash || "").replace("#", "");
+  if (levels.some(function(lv){ return lv.id === hash; })) startId = hash;
+  activate(startId, false);
+  initialized[startId] = true;
+  if (startId === "l2") initL2Charts();
+  if (startId === "l3") initL3Chart();
+
+  /* ---------------- Level 1 : prompt cache ---------------- */
+  var cacheOn = true;
+  var strip = document.getElementById("promptStrip");
+  var blocks = [
+    {name:"System prompt", tok:900, kind:"stable"},
+    {name:"Tool definitions", tok:1400, kind:"stable"},
+    {name:"Reference docs", tok:300, kind:"stable"},
+    {name:"User message", tok:300, kind:"fresh"}
+  ];
+
+  function renderPrompt(){
+    strip.innerHTML = "";
+    var order = cacheOn ? blocks : [blocks[3], blocks[0], blocks[1], blocks[2]];
+    order.forEach(function(b, i){
+      var broken = !cacheOn; // when order is broken, nothing caches at all
+      var div = document.createElement("div");
+      div.className = "prompt-blk " + (broken ? "broken" : b.kind);
+      var tagText = broken ? "recomputed" : (b.kind === "stable" ? "cached" : "fresh, every call");
+      div.innerHTML = '<span class="name">' + b.name + '<span class="tok">' + b.tok.toLocaleString() + ' tok</span></span><span class="tag">' + tagText + '</span>';
+      strip.appendChild(div);
+    });
+
+    var cachedTok = cacheOn ? 2600 : 0;
+    var freshTok = cacheOn ? 300 : 2900;
+    document.getElementById("statCachedTok").textContent = cachedTok.toLocaleString();
+    document.getElementById("statFreshTok").textContent = freshTok.toLocaleString();
+
+    // mock pricing: $3.00 / M fresh input tokens, $0.30 / M cached input tokens (~90% cheaper)
+    var costPerCall = (cachedTok * 0.30 / 1e6) + (freshTok * 3.00 / 1e6);
+    var totalCost = costPerCall * 1000;
+    var noCacheCostPerCall = (2900 * 3.00) / 1e6;
+    var noCacheTotal = noCacheCostPerCall * 1000;
+    var savings = Math.round((1 - totalCost / noCacheTotal) * 100);
+
+    document.getElementById("statSavings").textContent = savings + "%";
+    document.getElementById("barCostA").textContent = "$" + totalCost.toFixed(2);
+    document.getElementById("barFillA").style.width = Math.max(3, (totalCost / noCacheTotal) * 100) + "%";
+
+    document.getElementById("cacheToggleState").textContent = cacheOn ? "ON — cache-friendly order" : "OFF — user message comes first";
+  }
+  renderPrompt();
+
+  var cacheToggle = document.getElementById("cacheToggle");
+  cacheToggle.setAttribute("aria-checked", "true");
+  cacheToggle.addEventListener("click", function(){
+    cacheOn = !cacheOn;
+    cacheToggle.setAttribute("aria-checked", cacheOn ? "true" : "false");
+    renderPrompt();
+  });
+
+  /* ---------------- Level 2 : load test ---------------- */
+  var concX = [1,2,4,8,12,16,20,24,28,32];
+  var thrY  = [42,78,140,230,310,380,440,480,505,520];
+  var ttftY = [110,120,140,240,300,350,400,440,460,480];
+  var utilAt = {1:15, 8:55, 32:78};
+  var kvAt   = {1:6, 8:42, 32:85};
+  var thrAt  = {1:42, 8:230, 32:520};
+  var ttftAt = {1:110, 8:240, 32:480};
+  var concSteps = [1,8,32];
+
+  var chartThroughput, chartTtft;
+
+  function gridColor(){ return cssVar('--grid'); }
+  function axisColor(){ return cssVar('--muted'); }
+
+  function baseLineOpts(yTitle){
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 250 },
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
+      scales: {
+        x: { grid: { color: gridColor() }, ticks: { color: axisColor(), font: {size: 10} }, title: {display:false} },
+        y: { grid: { color: gridColor() }, ticks: { color: axisColor(), font: {size: 10} }, title: {display:true, text:yTitle, color: axisColor(), font:{size:10}} }
+      }
+    };
+  }
+
+  function initL2Charts(){
+    var ctxT = document.getElementById("chartThroughput").getContext("2d");
+    chartThroughput = new Chart(ctxT, {
+      type: "line",
+      data: { labels: concX, datasets: [
+        { data: thrY, borderColor: cssVar('--accent'), backgroundColor: "transparent", borderWidth: 2, pointRadius: 0, tension: 0.35 },
+        { data: [], borderColor: cssVar('--accent-2'), backgroundColor: cssVar('--accent-2'), pointRadius: 6, pointStyle: "circle", showLine:false }
+      ]},
+      options: baseLineOpts("tok/s")
+    });
+    var ctxF = document.getElementById("chartTtft").getContext("2d");
+    chartTtft = new Chart(ctxF, {
+      type: "line",
+      data: { labels: concX, datasets: [
+        { data: ttftY, borderColor: cssVar('--series-3'), backgroundColor: "transparent", borderWidth: 2, pointRadius: 0, tension: 0.35 },
+        { data: [], borderColor: cssVar('--accent-2'), backgroundColor: cssVar('--accent-2'), pointRadius: 6, pointStyle: "circle", showLine:false }
+      ]},
+      options: baseLineOpts("ms")
+    });
+    updateL2(1);
+  }
+
+  function updateL2(conc){
+    document.getElementById("s2Util").textContent = utilAt[conc] + "%";
+    document.getElementById("s2Thr").textContent = thrAt[conc];
+    document.getElementById("s2Ttft").textContent = ttftAt[conc] + "ms";
+    document.getElementById("s2Kv").textContent = kvAt[conc] + "%";
+    document.getElementById("s2MemKv").style.width = kvAt[conc] * 0.6 + "%";
+    document.getElementById("s2MemLabel").textContent = (100 - 35 - Math.round(kvAt[conc]*0.6)) + "% free";
+
+    if (chartThroughput) {
+      var idx = concX.indexOf(conc);
+      chartThroughput.data.datasets[1].data = concX.map(function(x,i){ return i===idx ? thrY[i] : null; });
+      chartThroughput.update("none");
+      chartTtft.data.datasets[1].data = concX.map(function(x,i){ return i===idx ? ttftY[i] : null; });
+      chartTtft.update("none");
+    }
+  }
+
+  var concSlider = document.getElementById("concSlider");
+  concSlider.addEventListener("input", function(){
+    var conc = concSteps[+concSlider.value];
+    document.querySelectorAll(".slider-ticks span").forEach(function(s){
+      s.setAttribute("data-on", (+s.dataset.val === conc) ? "true" : "false");
+    });
+    updateL2(conc);
+  });
+  document.querySelectorAll(".slider-ticks span").forEach(function(s){
+    s.setAttribute("data-on", (+s.dataset.val === 8) ? "true" : "false");
+  });
+
+  /* ---------------- Level 3 : precision + engine ---------------- */
+  var precisionSeg = document.getElementById("precisionSeg");
+  precisionSeg.addEventListener("click", function(e){
+    var b = e.target.closest("button");
+    if (!b) return;
+    precisionSeg.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b ? "true":"false"); });
+    var fp8 = b.dataset.v === "fp8";
+    document.getElementById("precThrVal").textContent = fp8 ? "231 tok/s" : "118 tok/s";
+    document.getElementById("precThrBar").style.width = fp8 ? "100%" : "51%";
+    document.getElementById("precThrBar").style.background = fp8 ? cssVar('--good') : cssVar('--accent');
+    document.getElementById("precCostVal").textContent = fp8 ? "$0.97" : "$1.90";
+    document.getElementById("precCostBar").style.width = fp8 ? "51%" : "100%";
+    document.getElementById("precNote").textContent = fp8
+      ? "FP8 — ~1.96× the throughput, same H100, little quality loss for most tasks."
+      : "Baseline — FP16 weights.";
+  });
+
+  var engineTurns = [1,2,3,4,5,6,7,8,9,10];
+  var vllmOn   = [24,23,22,21,20,19,18,17,16,16];
+  var sglangOn = [31,29,30,28,31,29,30,28,31,29];
+  var vllmOff  = [22,19,16,14,12,11,10,9,9,8];
+  var sglangOff= [26,22,19,17,15,14,13,12,12,11];
+  var chartEngine, prefixOn = true;
+
+  function initL3Chart(){
+    var ctx = document.getElementById("chartEngine").getContext("2d");
+    chartEngine = new Chart(ctx, {
+      type: "line",
+      data: { labels: engineTurns, datasets: [
+        { label: "vLLM", data: vllmOn, borderColor: cssVar('--accent'), backgroundColor: "transparent", borderWidth: 2, pointRadius: 3, tension: 0.3 },
+        { label: "SGLang", data: sglangOn, borderColor: cssVar('--series-3'), backgroundColor: "transparent", borderWidth: 2, borderDash: [5,3], pointRadius: 3, tension: 0.3 }
+      ]},
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: {duration:250},
+        plugins: { legend: { display:false }, tooltip: { mode:"index", intersect:false } },
+        scales: {
+          x: { grid:{color:gridColor()}, ticks:{color:axisColor(), font:{size:10}}, title:{display:true, text:"conversation turn", color:axisColor(), font:{size:10}} },
+          y: { grid:{color:gridColor()}, ticks:{color:axisColor(), font:{size:10}}, title:{display:true, text:"tok/s", color:axisColor(), font:{size:10}} }
+        }
+      }
+    });
+  }
+
+  document.getElementById("prefixToggle").addEventListener("click", function(){
+    prefixOn = !prefixOn;
+    this.setAttribute("aria-checked", prefixOn ? "true":"false");
+    document.getElementById("prefixToggleState").textContent = prefixOn ? "ON" : "OFF";
+    if (chartEngine){
+      chartEngine.data.datasets[0].data = prefixOn ? vllmOn : vllmOff;
+      chartEngine.data.datasets[1].data = prefixOn ? sglangOn : sglangOff;
+      chartEngine.update();
+    }
+  });
+
+  /* ---------------- Level 4 ---------------- */
+  var l4Seg = document.getElementById("l4Seg");
+  var l4Panels = { spec: document.getElementById("l4-spec"), split: document.getElementById("l4-split"), route: document.getElementById("l4-route") };
+  l4Seg.addEventListener("click", function(e){
+    var b = e.target.closest("button");
+    if (!b) return;
+    l4Seg.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b ? "true":"false"); });
+    Object.keys(l4Panels).forEach(function(k){ l4Panels[k].hidden = (k !== b.dataset.v); });
+  });
+
+  var specData = {
+    base:  { thr: 58, mult: "1.0×", code: "1.0×", codeW: 30, creat: "1.0×", creatW: 22 },
+    spec:  { thr: 87, mult: "1.5×", code: "1.5×", codeW: 46, creat: "1.1×", creatW: 24 },
+    eagle: { thr: 132,mult: "2.28×",code: "2.3×", codeW: 70, creat: "1.4×", creatW: 30 }
+  };
+  document.getElementById("specSeg").addEventListener("click", function(e){
+    var b = e.target.closest("button");
+    if (!b) return;
+    this.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b ? "true":"false"); });
+    var d = specData[b.dataset.v];
+    document.getElementById("specThrVal").textContent = d.thr + " tok/s · " + d.mult;
+    document.getElementById("specThrBar").style.width = (d.thr/132*100) + "%";
+    document.getElementById("specCodeVal").textContent = d.code;
+    document.getElementById("specCodeBar").style.width = d.codeW + "%";
+    document.getElementById("specCreatVal").textContent = d.creat;
+    document.getElementById("specCreatBar").style.width = d.creatW + "%";
+  });
+
+  /* ---------------- Level 5 : reflection (localStorage) ---------------- */
+  var reflectBox = document.getElementById("reflectBox");
+  var saveNote = document.getElementById("saveNote");
+  try {
+    var saved = localStorage.getItem("inference-ladder-reflection");
+    if (saved) reflectBox.value = saved;
+  } catch(e) {}
+  var saveTimer;
+  reflectBox.addEventListener("input", function(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){
+      try {
+        localStorage.setItem("inference-ladder-reflection", reflectBox.value);
+        saveNote.textContent = "Saved on this device only.";
+        saveNote.classList.add("on");
+      } catch(e) {
+        saveNote.textContent = "Kept only in this browser — never sent anywhere.";
+      }
+    }, 400);
+  });
+
+  /* ---------------- theme-aware chart redraw ---------------- */
+  function refreshChartColors(){
+    [chartThroughput, chartTtft, chartEngine].forEach(function(c){
+      if (!c) return;
+      c.options.scales.x.grid.color = gridColor();
+      c.options.scales.x.ticks.color = axisColor();
+      c.options.scales.y.grid.color = gridColor();
+      c.options.scales.y.ticks.color = axisColor();
+      c.update("none");
+    });
+  }
+  if (window.matchMedia) {
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", refreshChartColors);
+  }
+  new MutationObserver(refreshChartColors).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+
+})();
+</script>
+
+<style is:global>
+  /* Keep the site's global element styles from leaking into the demo */
+  .il{ font-size: 16px; }
+  .il :is(h1, h2, h3, h4){ color: inherit; }
+  .il a{ color: inherit; }
+
+  .il{
+    color-scheme: light;
+    --page: #f9f9f7;
+    --surface: #fcfcfb;
+    --surface-raised: #ffffff;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --border: rgba(11,11,11,0.10);
+    --border-strong: rgba(11,11,11,0.18);
+    --accent: #2a78d6;
+    --accent-ink: #ffffff;
+    --accent-soft: rgba(42,120,214,0.12);
+    --accent-2: #eb6834;
+    --accent-2-soft: rgba(235,104,52,0.12);
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --good: #0ca30c;
+    --warning: #fab219;
+    --serious: #ec835a;
+    --critical: #d03b3b;
+    --shadow: 0 1px 2px rgba(11,11,11,0.04), 0 8px 24px -12px rgba(11,11,11,0.12);
+  }
+  
+  
+
+  .il *{ box-sizing: border-box; }
+  .il{
+    background: var(--page);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.55;
+  }
+  .il .mono{ font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace; }
+  .il .tnum{ font-variant-numeric: tabular-nums; }
+
+  .il .wrap{
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+
+  /* ---------- Header ---------- */
+  .il header.hero{ margin-bottom: 28px; }
+  .il .kicker{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    margin: 0 0 10px;
+  }
+  .il h1.title{
+    font-size: clamp(28px, 5vw, 40px);
+    line-height: 1.08;
+    margin: 0 0 12px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .il .hero p{
+    max-width: 62ch;
+    color: var(--ink-2);
+    font-size: 15.5px;
+    margin: 0;
+  }
+
+  /* ---------- Stepper / rung nav ---------- */
+  .il .rungs{
+    list-style: none;
+    display: flex;
+    gap: 4px;
+    padding: 0;
+    margin: 26px 0 0;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .il .rung{
+    flex: 1 1 0;
+    min-width: 108px;
+  }
+  .il .rung button{
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: inherit;
+    transition: color .15s ease, border-color .15s ease;
+  }
+  .il .rung button:hover{ color: var(--ink-2); }
+  .il .rung button:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+  .il .rung .num{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+  }
+  .il .rung .name{
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: left;
+  }
+  .il .rung[data-active="true"] button{
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .il .rung[data-active="true"] .name{ color: var(--ink); }
+  .il .rung:not([data-active="true"]) .name{ color: var(--muted); }
+
+  /* ---------- Panel ---------- */
+  .il .panel{ padding-top: 30px; }
+  .il .panel-head{ margin-bottom: 6px; }
+  .il .eyebrow{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    font-weight: 600;
+    margin: 0 0 8px;
+  }
+  .il .panel h2{
+    font-size: clamp(22px, 4vw, 28px);
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .il .audience{
+    color: var(--muted);
+    font-size: 13.5px;
+    margin: 0 0 18px;
+  }
+  .il .body-copy{
+    max-width: 68ch;
+    color: var(--ink-2);
+    font-size: 15px;
+    margin: 0 0 26px;
+  }
+  .il .body-copy strong{ color: var(--ink); font-weight: 600; }
+
+  /* ---------- Cards / widgets ---------- */
+  .il .card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+  }
+  .il .card-head{
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .il .card-title{
+    font-size: 14.5px;
+    font-weight: 600;
+    margin: 0;
+  }
+  .il .card-sub{
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: 2px 0 0;
+  }
+
+  .il .callout{
+    border: 1px dashed var(--border-strong);
+    border-left: 3px solid var(--accent-2);
+    background: var(--accent-2-soft);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 16px;
+    margin: 6px 0 18px;
+  }
+  .il .callout .label{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 5px;
+  }
+  .il .callout p{ margin: 0; font-size: 13.5px; color: var(--ink-2); }
+
+  /* ---------- Toggle switch ---------- */
+  .il .toggle-row{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .il .switch{
+    position: relative;
+    width: 44px; height: 24px;
+    border-radius: 999px;
+    background: var(--border-strong);
+    border: none;
+    cursor: pointer;
+    flex: none;
+    transition: background .15s ease;
+  }
+  .il .switch[aria-checked="true"]{ background: var(--accent); }
+  .il .switch::after{
+    content: "";
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    transition: transform .15s ease;
+  }
+  .il .switch[aria-checked="true"]::after{ transform: translateX(20px); }
+  .il .toggle-label{ font-size: 13.5px; font-weight: 500; }
+  .il .toggle-label .mono{ color: var(--muted); font-size: 11.5px; }
+
+  /* ---------- Segmented control ---------- */
+  .il .segmented{
+    display: inline-flex;
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+    flex-wrap: wrap;
+  }
+  .il .segmented button{
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 7px 12px;
+    border: none;
+    background: none;
+    border-radius: 7px;
+    cursor: pointer;
+    color: var(--ink-2);
+  }
+  .il .segmented button[aria-pressed="true"]{
+    background: var(--surface-raised);
+    color: var(--accent);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    font-weight: 600;
+  }
+
+  /* ---------- Slider ---------- */
+  .il .slider-wrap{ margin: 4px 0 4px; }
+  .il input[type="range"]{
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--grid);
+    margin: 14px 0 6px;
+  }
+  .il input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--surface-raised);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    cursor: pointer;
+    margin-top: -7px;
+  }
+  .il input[type="range"]::-moz-range-thumb{
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--surface-raised);
+    cursor: pointer;
+  }
+  .il input[type="range"]::-webkit-slider-runnable-track{ height: 4px; border-radius: 2px; }
+  .il .slider-ticks{
+    display: flex;
+    justify-content: space-between;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .il .slider-ticks span[data-on="true"]{ color: var(--accent); font-weight: 600; }
+
+  /* ---------- Stat tiles ---------- */
+  .il .stat-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin: 16px 0 4px;
+  }
+  .il .stat-tile{
+    background: var(--page);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .il .stat-tile .v{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 21px;
+    font-weight: 600;
+    display: block;
+    line-height: 1.2;
+  }
+  .il .stat-tile .l{
+    font-size: 11.5px;
+    color: var(--muted);
+    display: block;
+    margin-top: 3px;
+  }
+  .il .stat-tile.accent .v{ color: var(--accent); }
+  .il .stat-tile.accent2 .v{ color: var(--accent-2); }
+  .il .stat-tile.good .v{ color: var(--good); }
+
+  /* ---------- Bar rows ---------- */
+  .il .bar-row{ margin: 10px 0; }
+  .il .bar-row .bar-top{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 5px;
+    font-size: 13px;
+  }
+  .il .bar-row .bar-top .name{ color: var(--ink-2); font-weight: 500; }
+  .il .bar-row .bar-top .val{ font-family: "IBM Plex Mono", monospace; font-weight: 600; }
+  .il .bar-track{
+    height: 22px;
+    border-radius: 5px;
+    background: var(--page);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .il .bar-fill{
+    height: 100%;
+    border-radius: 4px;
+    transition: width .4s cubic-bezier(.2,.7,.3,1);
+    min-width: 3px;
+  }
+
+  /* ---------- Prompt blocks (Level 1) ---------- */
+  .il .prompt-strip{
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .il .prompt-blk{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    transition: background .3s ease, order .3s ease;
+  }
+  .il .prompt-blk .name{ font-weight: 600; }
+  .il .prompt-blk .tag{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+  .il .prompt-blk.stable{ background: var(--accent-soft); }
+  .il .prompt-blk.stable .tag{ background: var(--accent); color: var(--accent-ink); }
+  .il .prompt-blk.fresh{ background: var(--page); }
+  .il .prompt-blk.fresh .tag{ background: var(--border-strong); color: var(--ink-2); }
+  .il .prompt-blk.broken{ background: rgba(208,59,59,0.10); }
+  .il .prompt-blk.broken .tag{ background: var(--critical); color: #fff; }
+  .il .prompt-blk .tok{ font-family: "IBM Plex Mono", monospace; color: var(--muted); font-size: 11.5px; margin-left: 10px;}
+
+  /* ---------- Chart pairs ---------- */
+  .il .chart-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 16px;
+    margin-top: 14px;
+  }
+  .il .chart-box{ position: relative; height: 190px; }
+  .il .chart-box .chart-title{
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    margin: 0 0 6px;
+  }
+
+  /* ---------- Diagrams (Level 4) ---------- */
+  .il .pool-diagram{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .il .pool{
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    background: var(--page);
+  }
+  .il .pool h4{ margin: 0 0 10px; font-size: 12.5px; font-weight: 600; }
+  .il .pool-boxes{ display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .il .gpu-box{
+    flex: 1;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 10px 8px;
+    text-align: center;
+    background: var(--surface-raised);
+  }
+  .il .gpu-box .tag{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 3px;
+  }
+  .il .gpu-box.prefill{ border-color: var(--accent-2); }
+  .il .gpu-box.prefill .tag{ color: var(--accent-2); }
+  .il .gpu-box.decode{ border-color: var(--accent); }
+  .il .gpu-box.decode .tag{ color: var(--accent); }
+  .il .pool-arrow{ font-size: 16px; color: var(--muted); }
+  .il .spark-label{ font-size: 11px; color: var(--muted); margin-bottom: 2px; display:flex; justify-content: space-between;}
+  .il .spark-label b{ color: var(--ink-2); font-weight: 600; }
+
+  /* ---------- Cache strip (routing) ---------- */
+  .il .cache-strip{ display: flex; gap: 3px; margin-top: 8px; }
+  .il .cache-strip .cell{
+    flex: 1;
+    height: 26px;
+    border-radius: 4px;
+  }
+  .il .cache-strip .cell.cold{ background: var(--accent-2); }
+  .il .cache-strip .cell.warm{ background: var(--accent-2-soft); border: 1px dashed var(--accent-2); }
+
+  /* ---------- Table ---------- */
+  .il .table-scroll{ overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+  .il table.compare{
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 640px;
+    font-size: 13px;
+    background: var(--surface);
+  }
+  .il table.compare th, .il table.compare td{
+    text-align: left;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .il table.compare th{
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    background: var(--page);
+  }
+  .il table.compare tr:last-child td{ border-bottom: none; }
+  .il table.compare td.standard{ color: var(--ink-2); }
+  .il table.compare td.frontier{ color: var(--ink); font-weight: 500; }
+
+  /* ---------- Reflection ---------- */
+  .il textarea.reflect{
+    width: 100%;
+    min-height: 90px;
+    resize: vertical;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--page);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13.5px;
+    padding: 12px 14px;
+  }
+  .il textarea.reflect:focus-visible{ outline: 2px solid var(--accent); outline-offset: 1px; }
+  .il .save-note{ font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+  .il .save-note.on{ color: var(--good); }
+
+  .il .fact-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .il .fact{
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 15px;
+    background: var(--surface);
+  }
+  .il .fact .ft-label{ font-size: 11.5px; color: var(--muted); margin-bottom: 6px; }
+  .il .fact .ft-row{ display:flex; align-items:baseline; gap: 8px; font-family: "IBM Plex Mono", monospace; }
+  .il .fact .ft-row .big{ font-size: 17px; font-weight: 600; }
+  .il .fact .ft-row .small{ font-size: 12px; color: var(--muted); }
+  .il .fact .ft-note{ font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+
+  .il .legend-inline{ display:flex; gap:16px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--ink-2); }
+  .il .legend-inline span{ display:inline-flex; align-items:center; gap:6px; }
+  .il .legend-inline i{ width: 14px; height: 3px; border-radius: 2px; display:inline-block; }
+
+  @media (max-width: 560px){
+    .il .rungs{ gap: 0; }
+    .il .rung{ min-width: 78px; }
+    .il .rung .name{ font-size: 12px; }
+  }
+
+</style>

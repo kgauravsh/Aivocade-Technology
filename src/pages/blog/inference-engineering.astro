@@ -1,0 +1,42 @@
+---
+// The "Inference Engineering" post is the interactive Inference Ladder itself, not a markdown article.
+// Its listing data (title, date, cover) still comes from src/content/blog/inference-engineering.md.
+import { getEntry } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+import InferenceLadder from '../../components/InferenceLadder.astro';
+
+const post = (await getEntry('blog', 'inference-engineering'))!;
+const { title, description, heroImage } = post.data;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={title} description={description} image={heroImage} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+		/>
+	</head>
+	<body>
+		<Header />
+		<main>
+			<InferenceLadder />
+		</main>
+		<Footer />
+	</body>
+</html>
+
+<style>
+	/* The ladder sets its own width and padding, so the page's narrow article column steps aside */
+	main {
+		width: 100%;
+		max-width: none;
+		padding: 0;
+		background: #f9f9f7;
+	}
+</style>

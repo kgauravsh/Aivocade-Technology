@@ -9,7 +9,7 @@ import SocialLinks from './SocialLinks.astro';
 		<h2><a href="/">{SITE_TITLE}</a></h2>
 		<div class="internal-links">
 			<HeaderLink href="/">Home</HeaderLink>
-			<HeaderLink href="/blog">Blog</HeaderLink>
+			<HeaderLink href="/blog">Blogs / POVs</HeaderLink>
 			<HeaderLink href="/about">About</HeaderLink>
 		</div>
 		<div class="social-links">
@@ -64,6 +64,29 @@ import SocialLinks from './SocialLinks.astro';
 	@media (max-width: 720px) {
 		.social-links {
 			display: none;
+		}
+	}
+	/* Phones: site name on its own line, nav links on one line below it */
+	@media (max-width: 600px) {
+		nav {
+			flex-wrap: wrap;
+		}
+		h2 {
+			width: 100%;
+			padding-top: 0.75em;
+		}
+		h2 a {
+			padding: 0.25em 0;
+			border-bottom: 0;
+		}
+		.internal-links {
+			display: flex;
+			margin-left: -0.4em;
+		}
+		.internal-links :global(a) {
+			padding: 0.5em 0.4em 0.6em;
+			font-size: 0.9em;
+			white-space: nowrap;
 		}
 	}
 </style>
