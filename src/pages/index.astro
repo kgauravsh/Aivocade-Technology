@@ -2,6 +2,7 @@
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
+import LandingGraphic from '../components/LandingGraphic.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 ---
 
@@ -9,41 +10,76 @@ import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
 <html lang="en">
 	<head>
 		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+		/>
 	</head>
-	<body>
+	<body class="landing">
 		<Header />
 		<main>
-			<h1>🧑‍🚀 Hello, Astronaut!</h1>
-			<p>
-				Welcome to the official <a href="https://astro.build/">Astro</a> blog starter template. This template
-				serves as a lightweight, minimally-styled starting point for anyone looking to build a personal
-				website, blog, or portfolio with Astro.
-			</p>
-			<p>
-				This template comes with a few integrations already configured in your{' '}
-				<code>astro.config.mjs</code> file. You can customize your setup with{' '}
-				<a href="https://astro.build/integrations">Astro Integrations</a> to add tools like Tailwind,
-				React, or Vue to your project.
-			</p>
-			<p>Here are a few ideas on how to get started with the template:</p>
-			<ul>
-				<li>Edit this page in <code>src/pages/index.astro</code></li>
-				<li>Edit the site header items in <code>src/components/Header.astro</code></li>
-				<li>Add your name to the footer in <code>src/components/Footer.astro</code></li>
-				<li>Check out the included blog posts in <code>src/content/blog/</code></li>
-				<li>Customize the blog post page layout in <code>src/layouts/BlogPost.astro</code></li>
-			</ul>
-			<p>
-				Have fun! If you get stuck, remember to{' '}
-				<a href="https://docs.astro.build/">read the docs</a>{' '}
-				or <a href="https://astro.build/chat">join us on Discord</a> to ask questions.
-			</p>
-			<p>
-				Looking for a blog template with a bit more personality? Check out{' '}
-				<a href="https://github.com/Charca/astro-blog-template">astro-blog-template</a>{' '}
-				by <a href="https://twitter.com/Charca">Maxi Ferreira</a>.
-			</p>
+			<div class="frame">
+				<LandingGraphic />
+			</div>
 		</main>
 		<Footer />
 	</body>
 </html>
+
+<style>
+	/* The home page is dark; header and footer follow it here only */
+	:global(body.landing) {
+		--landing-bg: #08090a;
+		--landing-text: #e8eaec;
+		--landing-muted: #8b959e;
+		--landing-border: #3a4148;
+		/* Re-point the site's own colour variables so header links, headings and the active tab read on dark */
+		--black: 232, 234, 236;
+		--accent: #6fd3b8;
+		background: var(--landing-bg);
+		color: var(--landing-muted);
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+	:global(body.landing header) {
+		background: transparent;
+		box-shadow: none;
+		border-bottom: 1px solid #1c2226;
+	}
+	:global(body.landing footer) {
+		background: transparent;
+		padding: 1.5em 1em;
+		color: var(--landing-muted);
+	}
+	:global(body.landing footer a) {
+		color: var(--landing-muted);
+	}
+
+	main {
+		flex: 1;
+		width: 100%;
+		max-width: none;
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 2rem 16px;
+	}
+	.frame {
+		width: 100%;
+		min-width: 0; /* let the frame shrink inside the flex row instead of widening the page */
+		max-width: 1280px;
+		border: 2px solid var(--landing-border);
+		border-radius: 12px;
+		overflow: hidden;
+		box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+	}
+	@media (max-width: 700px) {
+		main {
+			padding: 1rem 12px;
+		}
+	}
+</style>

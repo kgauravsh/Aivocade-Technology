@@ -138,27 +138,4 @@ Recognition from client CTOs (NCR Atleos), US Bank SVP Cloud and VZ MD India on 
 - Own scope, estimation, and planning discussions with client stakeholders; conduct solution quality audits across the delivery portfolio.
 - Produce reference architectures and reusable component libraries from major implementations, enabling reuse and cost savings across subsequent engagements.
 
-## Earlier Career
-
-**WNS Trinity Mortgage Services — Associate Visual Lead, Financial Domain**
-*March 2006 – September 2007*
-
-- Led UI delivery on a loan-origination platform (~200-person delivery organization), owning on-time delivery of application interfaces and UI review ahead of UAT.
-- Led a team of 3–7 depending on module scope; trained team members on emerging front-end practices; coordinated across dev and QA cycles.
-
-**Apexlynx Software Systems — Senior Designer, Multiple Domains (Travel, Education, Sports)**
-*December 2002 – March 2006*
-
-- Designed websites, e-learning experiences, and application interfaces across travel, education, and sports domains; led client requirement-gathering and deliverable presentations.
-- Led a team of up to 3; trained team members on design standards; coordinated with development teams through QA and integration cycles.
-
-## Professional Development
-
-- Pursuing Claude Certified Architect – Professional (CCAR-P), Anthropic Partner Academy — in active preparation.
-
-## Education
-
-- Diploma in Web Technologies — Web Weavers
-- Advanced Certification in Computer Applications — Arena Multimedia
-- Three-Year Diploma in Electronics and Communication — AICTE
-- Bachelor's degree coursework pursued (not completed)
+many earlier career experience *that can be furnished on demand

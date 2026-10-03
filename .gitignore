@@ -24,3 +24,9 @@ pnpm-debug.log*
 .idea/
 .vercel
 .env*
+
+# raw saved X pages used as source for blog posts
+contentfrom-tw-blogs/
+# design mockup the landing graphic was rebuilt from
+Landing graphic-html/
+Landing graphic-html.zip

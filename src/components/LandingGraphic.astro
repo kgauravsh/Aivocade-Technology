@@ -1,0 +1,624 @@
+---
+// Interactive landing graphic, rebuilt from the design mockup in "Landing graphic-html/Main.dc.html".
+// Colours, type sizes, spacing and timings are the mockup's values. The first stage is rendered here so the
+// page reads fine before (or without) JavaScript; the script below drives lane/stage changes and autoplay.
+const DWELL_SECONDS = 4;
+
+const lanes = [
+	{
+		tag: '01 REQUEST', path: '/growth', name: 'Growth', blurb: 'How a new technology gets in and gets tested.',
+		icon: 'M3 17l6-6 4 4 8-8 M15 7h6v6',
+		stages: [
+			{ label: 'New signal', icon: 'M12 12v9 M8.5 15.5a5 5 0 1 1 7 0 M5.6 18.4a9 9 0 1 1 12.8 0',
+				body: 'A protocol, an SDK or a pattern shows up long before it is safe to recommend: MCP, A2A, AG-UI, A2UI, UCP, the Apps SDK. I pick the ones that change how applications get built, not the ones that trend.' },
+			{ label: 'Probe', icon: 'M11 4a7 7 0 1 0 0 14a7 7 0 0 0 0-14z M16 16l5 5',
+				body: 'Read the spec, not the launch post. Then look for where it breaks: auth, state, token budgets, the handoff between agents.' },
+			{ label: 'Build the POC', icon: 'M8 7l-5 5 5 5 M16 7l5 5-5 5 M14 4l-4 16',
+				body: 'Nothing counts until it runs. A small proof of concept on a real use case says more about feasibility than any reference diagram.' },
+			{ label: 'Go one level deeper', icon: 'M12 3l9 5-9 5-9-5z M3 12.5l9 5 9-5 M3 17l9 5 9-5',
+				body: 'Past the demo is where the real questions sit: contracts, checkpointing, observability, cost. That is the level a delivery team actually works at.' },
+		],
+	},
+	{
+		tag: '02 MIDDLEWARE', path: '/personality', name: 'Personality', blurb: 'What every idea passes through on the way.',
+		icon: 'M4 5h16l-6 7v6l-4 2v-8z',
+		stages: [
+			{ label: 'Question back', icon: 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7 M12 17h.01',
+				body: "I don't agree by default, and I don't expect anyone to agree with me. A good question usually moves a design further than a quick yes." },
+			{ label: 'Demand evidence', icon: 'M6 3h8l4 4v14H6z M14 3v4h4 M9 14l2 2 4-4',
+				body: 'Opinions are cheap. I look for what other engineering teams found when they tried it, and I cite the instance.' },
+			{ label: 'Debate as peers', icon: 'M3 5h11v8H8l-3 3v-3H3z M17 9h4v8h-2v3l-3-3h-5v-1',
+				body: 'The best reviews are arguments between equals. Pushback is part of the process, not a failure of it.' },
+			{ label: 'Form a point of view', icon: 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z M12 8a4 4 0 1 0 0 8a4 4 0 0 0 0-8z M12 11.5v1',
+				body: 'After the probing and the argument, commit to a position: grounded, specific, and open to revision when the evidence changes.' },
+		],
+	},
+	{
+		tag: '03 RESPONSE', path: '/sharing', name: 'Sharing', blurb: 'What goes back out to teams and clients.',
+		icon: 'M21 3L10 14 M21 3l-7 18-4-7-7-4z',
+		stages: [
+			{ label: 'Write it down', icon: 'M4 20h4L19 9l-4-4L4 16z M13 7l4 4',
+				body: 'Field notes land here while they are still fresh: what worked, what did not, and what I would do differently next time.' },
+			{ label: 'Reference architecture', icon: 'M9 3h6v5H9z M3 16h6v5H3z M15 16h6v5h-6z M12 8v4 M6 16v-4h12v4',
+				body: 'Notes harden into patterns: typed handoffs, governance, and how agentic workflows span products and teams.' },
+			{ label: 'Learning path', icon: 'M12 6c-2-1.5-5-2-8-2v14c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2z M12 6v14',
+				body: 'If a technology holds up, it becomes a path others can follow, written for engineers and non-engineers alike.' },
+			{ label: 'Client point of view', icon: 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z M8 12l3 3 5-6',
+				body: 'The end of the trace: a clear view on what to adopt, what to wait on, and what to skip.' },
+		],
+	},
+];
+
+const first = lanes[0];
+---
+
+<section class="lg" data-dwell={DWELL_SECONDS}>
+	<script type="application/json" class="lg-data" set:html={JSON.stringify(lanes)} />
+
+	<div class="lg-top">
+		<div class="lg-intro">
+			<div class="lg-request">GET /blog HTTP/3</div>
+			<h1>Kumar Gaurav</h1>
+			<p class="lg-tagline">AI-native architecture, agentic protocols, and what actually ships.</p>
+		</div>
+		<div class="lg-response" aria-hidden="true">
+			<span class="lg-status">HTTP/3 200 OK</span>
+			<span>content-type: point-of-view</span>
+			<span>cache-control: no-stale-opinions</span>
+			<span>x-evidence: required</span>
+		</div>
+	</div>
+
+	<div class="lg-body">
+		<div class="lg-lanes" role="group" aria-label="How I work">
+			{lanes.map((l, i) => (
+				<button type="button" class="lg-lane" data-lane={i} aria-pressed={i === 0 ? 'true' : 'false'}>
+					<svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d={l.icon} /></svg>
+					<span class="lg-lane-text">
+						<span class="lg-lane-tag">{l.tag}</span>
+						<span class="lg-lane-name">{l.name}</span>
+						<span class="lg-lane-blurb">{l.blurb}</span>
+					</span>
+				</button>
+			))}
+		</div>
+
+		<div class="lg-panel">
+			<div class="lg-panel-top">
+				<div class="lg-trace">{first.tag}&nbsp; · &nbsp;{first.path}&nbsp; · &nbsp;stage 1 of 4</div>
+				<button type="button" class="lg-toggle" aria-label="Pause the walkthrough">Pause</button>
+			</div>
+
+			<ol class="lg-track">
+				<li class="lg-rail" aria-hidden="true"><span class="lg-fill"></span></li>
+				{first.stages.map((s, i) => (
+					<li>
+						<button type="button" class="lg-stage" data-stage={i} aria-current={i === 0 ? 'step' : undefined}>
+							<span class="lg-dot">
+								<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d={s.icon} /></svg>
+							</span>
+							<span class="lg-stage-label">{s.label}</span>
+						</button>
+					</li>
+				))}
+			</ol>
+
+			<div class="lg-content">
+				<h2 class="lg-title">{first.stages[0].label}</h2>
+				<p class="lg-text">{first.stages[0].body}</p>
+			</div>
+
+			<div class="lg-next">next → <span>{first.stages[1].label}</span></div>
+		</div>
+	</div>
+</section>
+
+<script>
+	type Stage = { label: string; icon: string; body: string };
+	type Lane = { tag: string; path: string; name: string; blurb: string; icon: string; stages: Stage[] };
+
+	for (const root of document.querySelectorAll<HTMLElement>('.lg')) {
+		const lanes: Lane[] = JSON.parse(root.querySelector('.lg-data')!.textContent!);
+		const dwell = Math.max(2, Number(root.dataset.dwell ?? 4)) * 1000;
+		const $ = <T extends Element>(sel: string) => root.querySelector<T>(sel)!;
+		const laneButtons = [...root.querySelectorAll<HTMLButtonElement>('.lg-lane')];
+		const stageButtons = [...root.querySelectorAll<HTMLButtonElement>('.lg-stage')];
+		const toggle = $<HTMLButtonElement>('.lg-toggle');
+		const content = $<HTMLElement>('.lg-content');
+
+		const state = { lane: 0, stage: 0, playing: true };
+		let timer: number | undefined;
+
+		function render(fade: boolean) {
+			const lane = lanes[state.lane];
+			const stage = lane.stages[state.stage];
+			const last = state.stage >= 3;
+			const nextLane = last ? lanes[(state.lane + 1) % 3] : lane;
+			const nextStage = last ? nextLane.stages[0] : lane.stages[state.stage + 1];
+
+			laneButtons.forEach((b, i) => b.setAttribute('aria-pressed', String(i === state.lane)));
+			stageButtons.forEach((b, i) => {
+				const s = lane.stages[i];
+				b.querySelector('path')!.setAttribute('d', s.icon);
+				b.querySelector('.lg-stage-label')!.textContent = s.label;
+				b.classList.toggle('is-done', i <= state.stage);
+				if (i === state.stage) b.setAttribute('aria-current', 'step');
+				else b.removeAttribute('aria-current');
+			});
+			$<HTMLElement>('.lg-fill').style.width = `${(state.stage / 3) * 100}%`;
+			$<HTMLElement>('.lg-trace').textContent = `${lane.tag}  ·  ${lane.path}  ·  stage ${state.stage + 1} of 4`;
+			$<HTMLElement>('.lg-title').textContent = stage.label;
+			$<HTMLElement>('.lg-text').textContent = stage.body;
+			$<HTMLElement>('.lg-next span').textContent = (last ? `${nextLane.path} · ` : '') + nextStage.label;
+
+			if (fade) {
+				// Restart the fade-in each time the content changes
+				content.classList.remove('is-fading');
+				void content.offsetWidth;
+				content.classList.add('is-fading');
+			}
+		}
+
+		function restartTimer() {
+			clearInterval(timer);
+			timer = window.setInterval(() => {
+				if (!state.playing) return;
+				const last = state.stage >= 3;
+				state.stage = last ? 0 : state.stage + 1;
+				if (last) state.lane = (state.lane + 1) % 3;
+				render(true);
+			}, dwell);
+		}
+
+		laneButtons.forEach((b, i) =>
+			b.addEventListener('click', () => {
+				state.lane = i;
+				state.stage = 0;
+				render(true);
+				restartTimer(); // give the picked lane a full dwell before moving on
+			}),
+		);
+		stageButtons.forEach((b, i) =>
+			b.addEventListener('click', () => {
+				state.stage = i;
+				render(true);
+				restartTimer();
+			}),
+		);
+		toggle.addEventListener('click', () => {
+			state.playing = !state.playing;
+			toggle.textContent = state.playing ? 'Pause' : 'Play';
+			toggle.setAttribute('aria-label', state.playing ? 'Pause the walkthrough' : 'Play the walkthrough');
+		});
+
+		render(false);
+		restartTimer();
+	}
+</script>
+
+<style>
+	.lg {
+		--accent: #6fd3b8;
+		--bg: #0f1214;
+		--panel: #161b1f;
+		--line: #2a3238;
+		--line-strong: #3a444c;
+		--text: #e8eaec;
+		--text-body: #c3cad0;
+		--muted: #9aa4ad;
+		--faint: #8b959e;
+		--mono: 'IBM Plex Mono', ui-monospace, monospace;
+		box-sizing: border-box;
+		display: flex;
+		flex-direction: column;
+		gap: 32px;
+		padding: 64px;
+		background: var(--bg);
+		color: var(--text);
+		font-family: 'IBM Plex Sans', system-ui, sans-serif;
+		font-size: 16px;
+		line-height: 1.4;
+	}
+	.lg *,
+	.lg *::before {
+		box-sizing: border-box;
+	}
+	/* Base for every button in the graphic; the specific rules below come later and win */
+	.lg-lane,
+	.lg-toggle,
+	.lg-stage {
+		font: inherit;
+		color: inherit;
+		cursor: pointer;
+	}
+	.lg button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 2px;
+	}
+	.lg svg {
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.6;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+		flex: none;
+	}
+
+	/* Header: request line, name, and the response headers on the right */
+	.lg-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 48px;
+	}
+	.lg-intro {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.lg-request {
+		font-family: var(--mono);
+		font-size: 14px;
+		line-height: 20px;
+		letter-spacing: 0.04em;
+		color: var(--accent);
+	}
+	.lg h1 {
+		margin: 0;
+		font-size: 56px;
+		line-height: 64px;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		color: var(--text);
+	}
+	.lg-tagline {
+		margin: 0;
+		font-size: 20px;
+		line-height: 28px;
+		color: var(--muted);
+	}
+	.lg-response {
+		width: 286px;
+		flex: none;
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 22px;
+		color: var(--faint);
+	}
+	.lg-response span {
+		display: block;
+	}
+	.lg-response .lg-status {
+		color: var(--text);
+	}
+
+	/* Body: lane picker on the left, stage panel on the right */
+	.lg-body {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		gap: 32px;
+	}
+	.lg-lanes {
+		width: 360px;
+		flex: none;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.lg-lane {
+		flex: 1;
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 16px 20px;
+		text-align: left;
+		background: transparent;
+		border: 1px solid var(--line);
+		border-radius: 8px;
+		transition: border-color 300ms, background 300ms;
+	}
+	.lg-lane svg {
+		color: var(--faint);
+		transition: color 300ms;
+	}
+	.lg-lane:hover {
+		border-color: var(--line-strong);
+	}
+	.lg-lane[aria-pressed='true'] {
+		background: var(--panel);
+		border-color: var(--accent);
+	}
+	.lg-lane[aria-pressed='true'] svg,
+	.lg-lane[aria-pressed='true'] .lg-lane-tag {
+		color: var(--accent);
+	}
+	.lg-lane-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.lg-lane-tag {
+		font-family: var(--mono);
+		font-size: 12px;
+		line-height: 18px;
+		letter-spacing: 0.08em;
+		color: var(--faint);
+		transition: color 300ms;
+	}
+	.lg-lane-name {
+		font-size: 20px;
+		line-height: 28px;
+		font-weight: 600;
+	}
+	.lg-lane-blurb {
+		font-size: 14px;
+		line-height: 20px;
+		color: var(--muted);
+	}
+
+	.lg-panel {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 28px;
+		padding: 32px;
+		background: var(--panel);
+		border: 1px solid var(--line);
+		border-radius: 8px;
+	}
+	.lg-panel-top {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 16px;
+	}
+	.lg-trace {
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 20px;
+		letter-spacing: 0.04em;
+		color: var(--muted);
+		white-space: pre;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.lg-toggle {
+		min-width: 88px;
+		height: 44px;
+		padding: 0 16px;
+		font-family: var(--mono);
+		font-size: 13px;
+		background: transparent;
+		border: 1px solid var(--line-strong);
+		border-radius: 6px;
+	}
+	.lg-toggle:hover {
+		border-color: var(--faint);
+	}
+
+	/* Stage tracker: rail behind four stage buttons, filled up to the current stage */
+	.lg-track {
+		position: relative;
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	.lg-track li {
+		margin: 0;
+	}
+	.lg-rail {
+		position: absolute;
+		left: 12.5%;
+		right: 12.5%;
+		top: 23px;
+		height: 2px;
+		background: var(--line);
+	}
+	.lg-fill {
+		display: block;
+		height: 100%;
+		width: 0;
+		background: var(--accent);
+		transition: width 700ms ease;
+	}
+	.lg-stage {
+		position: relative;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 10px;
+		padding: 0;
+		background: transparent;
+		border: 0;
+		color: var(--faint);
+		transition: color 300ms;
+	}
+	.lg-dot {
+		width: 48px;
+		height: 48px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: var(--panel);
+		border: 1px solid var(--line-strong);
+		color: var(--faint);
+		transition: border-color 300ms, color 300ms;
+	}
+	.lg-stage.is-done .lg-dot {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.lg-stage[aria-current='step'] {
+		color: var(--text);
+	}
+	.lg-stage[aria-current='step'] .lg-dot {
+		animation: lg-pulse 1.8s ease-out infinite;
+	}
+	.lg-stage-label {
+		font-size: 15px;
+		line-height: 20px;
+		font-weight: 500;
+		text-align: center;
+	}
+
+	.lg-content {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.lg-content.is-fading {
+		animation: lg-fade 450ms ease both;
+	}
+	.lg-title {
+		margin: 0;
+		font-size: 32px;
+		line-height: 40px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+		color: var(--text);
+	}
+	.lg-text {
+		margin: 0;
+		max-width: 760px;
+		font-size: 18px;
+		line-height: 28px;
+		color: var(--text-body);
+	}
+	.lg-next {
+		margin-top: auto;
+		font-family: var(--mono);
+		font-size: 13px;
+		line-height: 20px;
+		letter-spacing: 0.04em;
+		color: var(--faint);
+	}
+	.lg-next span {
+		color: var(--accent);
+	}
+
+	@keyframes lg-pulse {
+		0% { box-shadow: 0 0 0 0 currentColor; }
+		70% { box-shadow: 0 0 0 12px transparent; }
+		100% { box-shadow: 0 0 0 0 transparent; }
+	}
+	@keyframes lg-fade {
+		from { opacity: 0; transform: translateY(8px); }
+		to { opacity: 1; transform: none; }
+	}
+	@media (prefers-reduced-motion: reduce) {
+		.lg *,
+		.lg {
+			animation: none !important;
+			transition: none !important;
+		}
+	}
+
+	/* Large screens keep the artboard's 16:9 proportions */
+	@media (min-width: 1100px) {
+		.lg {
+			aspect-ratio: 16 / 9;
+		}
+	}
+
+	/* Tablet: lanes become a row above the panel */
+	@media (max-width: 1099px) {
+		.lg {
+			padding: 40px;
+		}
+		.lg-body {
+			flex-direction: column;
+		}
+		.lg-lanes {
+			width: auto;
+			flex-direction: row;
+		}
+		.lg-lane {
+			align-items: flex-start;
+		}
+		.lg-panel {
+			min-height: 420px;
+		}
+	}
+
+	/* Phone: stack everything and tighten type */
+	@media (max-width: 700px) {
+		.lg {
+			padding: 24px 20px;
+			gap: 24px;
+		}
+		.lg-top {
+			flex-direction: column;
+			gap: 16px;
+		}
+		.lg h1 {
+			font-size: 40px;
+			line-height: 48px;
+		}
+		.lg-tagline {
+			font-size: 17px;
+			line-height: 25px;
+		}
+		.lg-response {
+			width: auto;
+		}
+		.lg-lanes {
+			gap: 8px;
+		}
+		.lg-lane {
+			flex-direction: column;
+			gap: 8px;
+			padding: 12px;
+		}
+		.lg-lane svg {
+			width: 22px;
+			height: 22px;
+		}
+		.lg-lane-tag {
+			font-size: 10px;
+			letter-spacing: 0.04em;
+		}
+		.lg-lane-name {
+			font-size: 16px;
+			line-height: 22px;
+		}
+		.lg-lane-blurb {
+			display: none;
+		}
+		.lg-panel {
+			padding: 20px 16px;
+			gap: 24px;
+			min-height: 0;
+		}
+		.lg-trace {
+			font-size: 11px;
+		}
+		.lg-toggle {
+			min-width: 72px;
+		}
+		.lg-dot {
+			width: 40px;
+			height: 40px;
+		}
+		.lg-rail {
+			top: 19px;
+		}
+		.lg-stage-label {
+			font-size: 12px;
+			line-height: 16px;
+		}
+		.lg-title {
+			font-size: 24px;
+			line-height: 32px;
+		}
+		.lg-text {
+			font-size: 16px;
+			line-height: 26px;
+		}
+	}
+</style>
