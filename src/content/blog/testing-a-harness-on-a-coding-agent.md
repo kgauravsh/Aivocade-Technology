@@ -2,7 +2,7 @@
 title: 'I Tested a Harness on a Coding Agent. It Fixed Exactly One Thing.'
 description: 'Same model, same task, same repo, one rules file added. The baseline missed the same unstated convention in 5/5 runs; the harness run fixed just that, and nothing else moved.'
 pubDate: '2026-10-03'
-heroImage: '../../assets/blog-placeholder-1.jpg'
+heroImage: '../../assets/blog/testing-a-harness-on-a-coding-agent/harness-image.jpeg'
 ---
 
 This is round two of a small side project I'm calling Harness Lab: does handing a coding agent
