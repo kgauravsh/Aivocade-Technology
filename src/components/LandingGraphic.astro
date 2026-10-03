@@ -4,10 +4,11 @@
 // page reads fine before (or without) JavaScript; the script below drives lane/stage changes and autoplay.
 const DWELL_SECONDS = 4;
 
+// Lanes in the mockup's order. MAIN lanes are the big buttons and the autoplay cycle; EXTRAS sit in the "ALSO" row.
 const lanes = [
 	{
-		tag: '01 REQUEST', path: '/growth', name: 'Growth', blurb: 'How a new technology gets in and gets tested.',
-		icon: 'M3 17l6-6 4 4 8-8 M15 7h6v6',
+		tag: 'ALSO', path: '/growth', name: 'Growth', blurb: 'How a new technology gets in and gets tested.',
+		icon: 'M12 21v-9 M12 12c0-4-3-6-7-6 0 4 3 6 7 6z M12 9c0-3 2.5-5 6-5 0 3-2.5 5-6 5z',
 		stages: [
 			{ label: 'New signal', icon: 'M12 12v9 M8.5 15.5a5 5 0 1 1 7 0 M5.6 18.4a9 9 0 1 1 12.8 0',
 				body: 'A protocol, an SDK or a pattern shows up long before it is safe to recommend: MCP, A2A, AG-UI, A2UI, UCP, the Apps SDK. I pick the ones that change how applications get built, not the ones that trend.' },
@@ -20,7 +21,7 @@ const lanes = [
 		],
 	},
 	{
-		tag: '02 MIDDLEWARE', path: '/personality', name: 'Personality', blurb: 'What every idea passes through on the way.',
+		tag: '03 HEADERS', path: '/personality', name: 'Personality', blurb: 'What travels with every request.',
 		icon: 'M4 5h16l-6 7v6l-4 2v-8z',
 		stages: [
 			{ label: 'Question back', icon: 'M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7 M12 17h.01',
@@ -34,7 +35,21 @@ const lanes = [
 		],
 	},
 	{
-		tag: '03 RESPONSE', path: '/sharing', name: 'Sharing', blurb: 'What goes back out to teams and clients.',
+		tag: '01 HANDLER', path: '/engineering-leadership', name: 'Engineering Leadership', blurb: 'How agentic delivery gets built and run.',
+		icon: 'M9 5a3.5 3.5 0 1 0 0 7a3.5 3.5 0 0 0 0-7z M2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5 M17 5.5a3.5 3.5 0 0 1 0 6.5 M19 15c2 .8 3 2.3 3 5',
+		stages: [
+			{ label: 'Wire the tools', icon: 'M9 3v5 M15 3v5 M6 8h12v4a6 6 0 0 1-12 0z M12 18v3',
+				body: 'Agents are only as good as what they can reach. MCP servers give them governed access to code, tickets, designs and test systems, without a one-off integration for each.' },
+			{ label: 'Orchestrate agents', icon: 'M6 3a2 2 0 1 0 0 4a2 2 0 0 0 0-4z M6 17a2 2 0 1 0 0 4a2 2 0 0 0 0-4z M18 6a2 2 0 1 0 0 4a2 2 0 0 0 0-4z M6 7v10 M18 10c0 5-12 2-12 7',
+				body: 'Requirements, code, quality and defect-fixing agents work as one graph. Typed handoff contracts and checkpoints keep a long-running agentic workflow deterministic and resumable.' },
+			{ label: 'Keep humans in the loop', icon: 'M9 4a4 4 0 1 0 0 8a4 4 0 0 0 0-8z M2 21c0-4 3-6 7-6s7 2 7 6 M16 11l2 2 4-4',
+				body: 'Autonomy is earned, not assumed. Human review sits where judgment matters, and steps back as the evidence builds.' },
+			{ label: 'Run it dark', icon: 'M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z',
+				body: 'The goal is a pipeline that runs lights-out from requirement to production, with the observability and audit trail that let a team trust it.' },
+		],
+	},
+	{
+		tag: 'ALSO', path: '/sharing', name: 'Sharing', blurb: 'What goes back out to teams and clients.',
 		icon: 'M21 3L10 14 M21 3l-7 18-4-7-7-4z',
 		stages: [
 			{ label: 'Write it down', icon: 'M4 20h4L19 9l-4-4L4 16z M13 7l4 4',
@@ -47,12 +62,30 @@ const lanes = [
 				body: 'The end of the trace: a clear view on what to adopt, what to wait on, and what to skip.' },
 		],
 	},
+	{
+		tag: '02 RESPONSE', path: '/business', name: 'Business', blurb: 'Why any of it is worth funding.',
+		icon: 'M3 8h18v12H3z M9 8V5h6v3 M3 13h18',
+		stages: [
+			{ label: 'Govern first', icon: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z M9 12l2 2 4-4',
+				body: 'AI governance is the entry ticket in regulated work. Audit trails, ownership and guardrails are designed in from day one, not bolted on after the pilot.' },
+			{ label: 'Define the outcome', icon: 'M5 21V4 M5 4h12l-2 4 2 4H5',
+				body: 'A pilot without a target is a demo. Name the result up front: speed to production, quality, cost to serve, revenue.' },
+			{ label: 'Measure results', icon: 'M5 20V11 M11 20V4 M17 20v-6 M3 20h18',
+				body: 'Count what changed, not what was shipped. If the numbers do not move, the architecture was not the problem worth solving.' },
+			{ label: 'Compound the growth', icon: 'M3 17l6-6 4 4 8-8 M15 7h6v6',
+				body: 'Results earn the next investment. Each proven workflow becomes a reusable pattern, and adoption grows from one team to many.' },
+		],
+	},
 ];
+const MAIN = [2, 4, 1];
+const EXTRAS = [0, 3];
+const START = MAIN[0];
 
-const first = lanes[0];
+const first = lanes[START];
+const firstNext = first.stages[1].label;
 ---
 
-<section class="lg" data-dwell={DWELL_SECONDS}>
+<section class="lg" data-dwell={DWELL_SECONDS} data-main={MAIN.join(",")} data-start={START}>
 	<script type="application/json" class="lg-data" set:html={JSON.stringify(lanes)} />
 
 	<div class="lg-top">
@@ -71,16 +104,24 @@ const first = lanes[0];
 
 	<div class="lg-body">
 		<div class="lg-lanes" role="group" aria-label="How I work">
-			{lanes.map((l, i) => (
-				<button type="button" class="lg-lane" data-lane={i} aria-pressed={i === 0 ? 'true' : 'false'}>
-					<svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d={l.icon} /></svg>
+			{MAIN.map((i) => (
+				<button type="button" class="lg-lane" data-lane={i} aria-pressed={i === START ? 'true' : 'false'}>
+					<svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><path d={lanes[i].icon} /></svg>
 					<span class="lg-lane-text">
-						<span class="lg-lane-tag">{l.tag}</span>
-						<span class="lg-lane-name">{l.name}</span>
-						<span class="lg-lane-blurb">{l.blurb}</span>
+						<span class="lg-lane-tag">{lanes[i].tag}</span>
+						<span class="lg-lane-name">{lanes[i].name}</span>
+						<span class="lg-lane-blurb">{lanes[i].blurb}</span>
 					</span>
 				</button>
 			))}
+			<div class="lg-also">
+				<span class="lg-also-label">ALSO</span>
+				{EXTRAS.map((i) => (
+					<button type="button" class="lg-extra" data-lane={i} aria-pressed="false" aria-label={`${lanes[i].name}: ${lanes[i].blurb}`}>
+						{lanes[i].path}
+					</button>
+				))}
+			</div>
 		</div>
 
 		<div class="lg-panel">
@@ -108,7 +149,7 @@ const first = lanes[0];
 				<p class="lg-text">{first.stages[0].body}</p>
 			</div>
 
-			<div class="lg-next">next → <span>{first.stages[1].label}</span></div>
+			<div class="lg-next">next → <span>{firstNext}</span></div>
 		</div>
 	</div>
 </section>
@@ -120,23 +161,30 @@ const first = lanes[0];
 	for (const root of document.querySelectorAll<HTMLElement>('.lg')) {
 		const lanes: Lane[] = JSON.parse(root.querySelector('.lg-data')!.textContent!);
 		const dwell = Math.max(2, Number(root.dataset.dwell ?? 4)) * 1000;
+		const main = root.dataset.main!.split(',').map(Number);
 		const $ = <T extends Element>(sel: string) => root.querySelector<T>(sel)!;
-		const laneButtons = [...root.querySelectorAll<HTMLButtonElement>('.lg-lane')];
+		const laneButtons = [...root.querySelectorAll<HTMLButtonElement>('.lg-lane, .lg-extra')];
 		const stageButtons = [...root.querySelectorAll<HTMLButtonElement>('.lg-stage')];
 		const toggle = $<HTMLButtonElement>('.lg-toggle');
 		const content = $<HTMLElement>('.lg-content');
 
-		const state = { lane: 0, stage: 0, playing: true };
+		const state = { lane: Number(root.dataset.start ?? main[0]), stage: 0, playing: true };
+
+		// Autoplay walks the main lanes in order; after an "ALSO" lane it returns to the first main lane
+		const nextLane = (lane: number) => {
+			const pos = main.indexOf(lane);
+			return pos < 0 ? main[0] : main[(pos + 1) % main.length];
+		};
 		let timer: number | undefined;
 
 		function render(fade: boolean) {
 			const lane = lanes[state.lane];
 			const stage = lane.stages[state.stage];
 			const last = state.stage >= 3;
-			const nextLane = last ? lanes[(state.lane + 1) % 3] : lane;
-			const nextStage = last ? nextLane.stages[0] : lane.stages[state.stage + 1];
+			const upcoming = last ? lanes[nextLane(state.lane)] : lane;
+			const nextStage = last ? upcoming.stages[0] : lane.stages[state.stage + 1];
 
-			laneButtons.forEach((b, i) => b.setAttribute('aria-pressed', String(i === state.lane)));
+			laneButtons.forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.lane) === state.lane)));
 			stageButtons.forEach((b, i) => {
 				const s = lane.stages[i];
 				b.querySelector('path')!.setAttribute('d', s.icon);
@@ -149,7 +197,7 @@ const first = lanes[0];
 			$<HTMLElement>('.lg-trace').textContent = `${lane.tag}  ·  ${lane.path}  ·  stage ${state.stage + 1} of 4`;
 			$<HTMLElement>('.lg-title').textContent = stage.label;
 			$<HTMLElement>('.lg-text').textContent = stage.body;
-			$<HTMLElement>('.lg-next span').textContent = (last ? `${nextLane.path} · ` : '') + nextStage.label;
+			$<HTMLElement>('.lg-next span').textContent = (last ? `${upcoming.path} · ` : '') + nextStage.label;
 
 			if (fade) {
 				// Restart the fade-in each time the content changes
@@ -165,14 +213,14 @@ const first = lanes[0];
 				if (!state.playing) return;
 				const last = state.stage >= 3;
 				state.stage = last ? 0 : state.stage + 1;
-				if (last) state.lane = (state.lane + 1) % 3;
+				if (last) state.lane = nextLane(state.lane);
 				render(true);
 			}, dwell);
 		}
 
-		laneButtons.forEach((b, i) =>
+		laneButtons.forEach((b) =>
 			b.addEventListener('click', () => {
-				state.lane = i;
+				state.lane = Number(b.dataset.lane);
 				state.stage = 0;
 				render(true);
 				restartTimer(); // give the picked lane a full dwell before moving on
@@ -225,6 +273,7 @@ const first = lanes[0];
 	}
 	/* Base for every button in the graphic; the specific rules below come later and win */
 	.lg-lane,
+	.lg-extra,
 	.lg-toggle,
 	.lg-stage {
 		font: inherit;
@@ -311,7 +360,7 @@ const first = lanes[0];
 		display: flex;
 		align-items: center;
 		gap: 16px;
-		padding: 16px 20px;
+		padding: 12px 20px;
 		text-align: left;
 		background: transparent;
 		border: 1px solid var(--line);
@@ -331,6 +380,38 @@ const first = lanes[0];
 	}
 	.lg-lane[aria-pressed='true'] svg,
 	.lg-lane[aria-pressed='true'] .lg-lane-tag {
+		color: var(--accent);
+	}
+	.lg-also {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	.lg-also-label {
+		padding-right: 4px;
+		font-family: var(--mono);
+		font-size: 12px;
+		letter-spacing: 0.08em;
+		color: var(--faint);
+	}
+	.lg-extra {
+		flex: 1;
+		height: 44px;
+		padding: 0 12px;
+		font-family: var(--mono);
+		font-size: 13px;
+		color: var(--faint);
+		background: transparent;
+		border: 1px solid var(--line);
+		border-radius: 6px;
+		transition: border-color 300ms, color 300ms;
+	}
+	.lg-extra:hover {
+		border-color: var(--line-strong);
+	}
+	.lg-extra[aria-pressed='true'] {
+		background: var(--panel);
+		border-color: var(--accent);
 		color: var(--accent);
 	}
 	.lg-lane-text {
@@ -375,6 +456,7 @@ const first = lanes[0];
 		gap: 16px;
 	}
 	.lg-trace {
+		min-width: 0;
 		font-family: var(--mono);
 		font-size: 13px;
 		line-height: 20px;
@@ -385,6 +467,8 @@ const first = lanes[0];
 		text-overflow: ellipsis;
 	}
 	.lg-toggle {
+		flex: none;
+		white-space: nowrap;
 		min-width: 88px;
 		height: 44px;
 		padding: 0 16px;
@@ -537,9 +621,15 @@ const first = lanes[0];
 		.lg-lanes {
 			width: auto;
 			flex-direction: row;
+			flex-wrap: wrap;
 		}
 		.lg-lane {
+			flex: 1 1 0;
+			min-width: 0;
 			align-items: flex-start;
+		}
+		.lg-also {
+			flex-basis: 100%;
 		}
 		.lg-panel {
 			min-height: 420px;
