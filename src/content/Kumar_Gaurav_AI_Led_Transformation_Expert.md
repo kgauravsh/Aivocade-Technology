@@ -1,6 +1,6 @@
 # KUMAR GAURAV
 
-+91 9069 199199 | kgauravsh@gmail.com | Hub - https://x.com/i/communities/2030302369729396980
+kgauravsh@gmail.com
 
 ## AI-LED TRANSFORMATION EXPERT
 
