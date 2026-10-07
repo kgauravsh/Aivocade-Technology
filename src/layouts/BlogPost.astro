@@ -52,6 +52,98 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 			.last-updated-on {
 				font-style: italic;
 			}
+			.prose a:has(> img) {
+				cursor: zoom-in;
+			}
+
+			/* Markdown tables: ruled cells, a shaded header row, and sideways scroll on narrow screens */
+			.prose :global(table) {
+				display: block;
+				max-width: 100%;
+				overflow-x: auto;
+				margin: 1.5em 0;
+				border-collapse: collapse;
+				font-size: 0.85em;
+				line-height: 1.45;
+			}
+			.prose :global(th),
+			.prose :global(td) {
+				padding: 0.55em 0.8em;
+				border: 1px solid rgb(var(--gray-light));
+				text-align: left;
+				vertical-align: top;
+			}
+			.prose :global(th) {
+				background: rgba(var(--gray-light), 50%);
+				color: rgb(var(--black));
+				font-weight: 700;
+			}
+
+			/* On-page image viewer */
+			.lightbox {
+				width: min(96vw, 1800px);
+				height: 92vh;
+				max-width: none;
+				max-height: none;
+				padding: 0;
+				border: 1px solid rgba(var(--gray), 30%);
+				border-radius: 12px;
+				background: #fff;
+				overflow: hidden;
+			}
+			.lightbox[open] {
+				display: flex;
+				flex-direction: column;
+			}
+			.lightbox::backdrop {
+				background: rgba(15, 18, 25, 0.75);
+			}
+			.lightbox-bar {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 1em;
+				padding: 0.4em 0.6em 0.4em 1em;
+				border-bottom: 1px solid rgb(var(--gray-light));
+				font-size: 14px;
+				color: rgb(var(--gray));
+			}
+			.lightbox-close {
+				width: 40px;
+				height: 40px;
+				font-size: 18px;
+				color: rgb(var(--gray-dark));
+				background: none;
+				border: 0;
+				border-radius: 8px;
+				cursor: pointer;
+			}
+			.lightbox-close:hover {
+				background: rgb(var(--gray-light));
+			}
+			.lightbox-stage {
+				flex: 1;
+				min-height: 0;
+				overflow: auto;
+				display: flex;
+			}
+			.lightbox-stage img {
+				margin: auto;
+				max-width: 100%;
+				max-height: 100%;
+				border-radius: 0;
+				cursor: zoom-in;
+			}
+			.lightbox.is-zoomed .lightbox-stage img {
+				max-width: none;
+				max-height: none;
+				cursor: zoom-out;
+			}
+			@media (max-width: 720px) {
+				.lightbox-hint {
+					display: none;
+				}
+			}
 		</style>
 	</head>
 
@@ -82,5 +174,49 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 			</article>
 		</main>
 		<Footer />
+
+		<dialog class="lightbox" aria-label="Enlarged image">
+			<div class="lightbox-bar">
+				<span class="lightbox-hint">Click the image to zoom · Esc to close</span>
+				<button type="button" class="lightbox-close" aria-label="Close">✕</button>
+			</div>
+			<div class="lightbox-stage"><img alt="" /></div>
+		</dialog>
+
+		<script>
+			// Images in a post that link to an image file open in this on-page viewer instead of leaving the post
+			const dialog = document.querySelector<HTMLDialogElement>('dialog.lightbox')!;
+			const img = dialog.querySelector('img')!;
+			const stage = dialog.querySelector<HTMLElement>('.lightbox-stage')!;
+
+			document.querySelectorAll<HTMLAnchorElement>('.prose a').forEach((a) => {
+				const thumb = a.querySelector('img');
+				if (!thumb || !/\.(png|jpe?g|webp|gif|svg)$/i.test(new URL(a.href).pathname)) return;
+				a.addEventListener('click', (e) => {
+					e.preventDefault();
+					img.src = a.href;
+					img.alt = thumb.alt;
+					dialog.classList.remove('is-zoomed');
+					dialog.showModal();
+				});
+			});
+
+			img.addEventListener('click', (e) => {
+				// Zoom in at the clicked point, or back out to fit
+				const zoomIn = !dialog.classList.contains('is-zoomed');
+				const rx = e.offsetX / img.clientWidth;
+				const ry = e.offsetY / img.clientHeight;
+				dialog.classList.toggle('is-zoomed', zoomIn);
+				if (zoomIn) {
+					stage.scrollLeft = rx * img.clientWidth - stage.clientWidth / 2;
+					stage.scrollTop = ry * img.clientHeight - stage.clientHeight / 2;
+				}
+			});
+			dialog.querySelector('.lightbox-close')!.addEventListener('click', () => dialog.close());
+			// Clicking the dark backdrop closes it too
+			dialog.addEventListener('click', (e) => {
+				if (e.target === dialog) dialog.close();
+			});
+		</script>
 	</body>
 </html>
